@@ -3,7 +3,6 @@ theme: dashboard
 title: Streaming Score Bias Dashboard
 toc: false
 ---
-
 <style>
 /* Fix text colors in dark filter panel */
 .card label {
@@ -23,8 +22,7 @@ toc: false
 .observablehq input[type="range"] {
   color: #fff !important;
 }
-/* Make range input number black */
-input[type="number"] {
+.observablehq input[type="number"] {
   color: #000 !important;
 }
 /* Fix any remaining dark text */
@@ -32,7 +30,6 @@ input[type="number"] {
   color: inherit;
 }
 </style>
-
 # Dashboard
 ```js
 // Load and clean data
@@ -522,11 +519,11 @@ function titlesPie(width = 260) {
         <div style="color: #fff; font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 10px; text-shadow: 0 2px 8px rgba(0,0,0,0.3);">${stats.total.toLocaleString("en-US")}</div>
         <div style="background: rgba(255,255,255,0.08); border-radius: 6px; padding: 6px; margin-bottom: 8px;">
           <div style="color: #bbb; font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600;">Platform Breakdown</div>
-          <div style="display: grid; grid-template-columns: 1fr; gap: 3px; font-size: 10px; color: #fff;">
-            <div style="font-weight: 600;"><span style="color: #E60026;">●</span> Amazon <span style="float: right;">${stats.platformCounts.Amazon.toLocaleString("en-US")}</span></div>
-            <div style="font-weight: 600;"><span style="color: #0275D8;">●</span> Netflix <span style="float: right;">${stats.platformCounts.Netflix.toLocaleString("en-US")}</span></div>
-            <div style="font-weight: 600;"><span style="color: #2ECC71;">●</span> Hulu <span style="float: right;">${stats.platformCounts.Hulu.toLocaleString("en-US")}</span></div>
-            <div style="font-weight: 600;"><span style="color: #F39C12;">●</span> Disney+ <span style="float: right;">${stats.platformCounts["Disney+"].toLocaleString("en-US")}</span></div>
+          <div style="display: grid; grid-template-columns: 1fr; gap: 3px; font-size: 10px;">
+            <div style="color: #E60026; font-weight: 600;">Amazon <span style="color: #fff; float: right;">${stats.platformCounts.Amazon.toLocaleString("en-US")}</span></div>
+            <div style="color: #0275D8; font-weight: 600;">Netflix <span style="color: #fff; float: right;">${stats.platformCounts.Netflix.toLocaleString("en-US")}</span></div>
+            <div style="color: #2ECC71; font-weight: 600;">Hulu <span style="color: #fff; float: right;">${stats.platformCounts.Hulu.toLocaleString("en-US")}</span></div>
+            <div style="color: #F39C12; font-weight: 600;">Disney+ <span style="color: #fff; float: right;">${stats.platformCounts["Disney+"].toLocaleString("en-US")}</span></div>
           </div>
         </div>
         <div style="display: flex; justify-content: center; margin-top: 8px;">${resize(width => titlesPie(Math.min(width, 120)))}</div>
@@ -535,11 +532,11 @@ function titlesPie(width = 260) {
     <div style="display: flex; flex-direction: column; gap: 6px;">
       <div class="card" style="padding: 10px 12px 12px 12px;">
         <h2 style="margin-top: 0; margin-bottom: 6px; font-size: 14px;">${vizType}</h2>
-        <div>${resize(width => createChart(width, null, 360))}</div>
+        <div>${resize(width => createChart(width, null, 280))}</div>
       </div>
       <div class="card" style="padding: 10px 12px 12px 12px;">
         <h2 style="margin-top: 0; margin-bottom: 6px; font-size: 14px;">Temporal Gap (Lines)</h2>
-        <div>${resize(width => createChart(width, "Temporal Gap (Lines)", 300))}</div>
+        <div>${resize(width => createChart(width, "Temporal Gap (Lines)", 140))}</div>
         <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--theme-foreground-faintest);">
           <h3 style="margin-top: 0; margin-bottom: 3px; font-size: 9px; font-weight: 600; color: var(--theme-foreground-muted);">Δ(IMDb − TMDb)</h3>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
