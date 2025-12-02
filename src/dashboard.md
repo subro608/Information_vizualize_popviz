@@ -4,6 +4,35 @@ title: Streaming Score Bias Dashboard
 toc: false
 ---
 
+<style>
+/* Fix text colors in dark filter panel */
+.card label {
+  color: #fff !important;
+}
+.card input[type="checkbox"] + label,
+.card input[type="radio"] + label {
+  color: #fff !important;
+}
+.card input {
+  color: #fff !important;
+}
+/* Fix Observable input labels */
+.observablehq label {
+  color: #fff !important;
+}
+.observablehq input[type="range"] {
+  color: #fff !important;
+}
+/* Make range input number black */
+input[type="number"] {
+  color: #000 !important;
+}
+/* Fix any remaining dark text */
+.card * {
+  color: inherit;
+}
+</style>
+
 # Dashboard
 ```js
 // Load and clean data
@@ -473,54 +502,54 @@ function titlesPie(width = 260) {
 ```
 <div class="grid grid-cols-1">
 
-  <div class="grid gap-3" style="grid-template-columns: 280px 1fr;">
-    <div class="card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border: 1px solid #333; padding: 16px;">
-      <h2 style="color: #fff; margin-top: 0; margin-bottom: 12px; font-size: 15px; font-weight: 600;">Filters</h2>
-      <div style="margin-bottom: 14px;">
+  <div class="grid gap-2" style="grid-template-columns: 260px 1fr;">
+    <div class="card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border: 1px solid #333; padding: 12px;">
+      <h2 style="color: #fff; margin-top: 0; margin-bottom: 10px; font-size: 14px; font-weight: 600;">Filters</h2>
+      <div style="margin-bottom: 10px;">
         ${platformInput}
       </div>
-      <div style="margin-bottom: 14px;">
+      <div style="margin-bottom: 10px;">
         ${vizTypeInput}
       </div>
-      <div style="margin-bottom: 14px;">
+      <div style="margin-bottom: 10px;">
         ${yearDialInput}
       </div>
-      <div style="margin-bottom: 16px;">
+      <div style="margin-bottom: 12px;">
         ${minVotesInput}
       </div>
-      <div style="border-top: 1px solid rgba(255,255,255,0.15); padding-top: 14px; margin-top: 16px;">
-        <h2 style="color: #fff; margin-top: 0; margin-bottom: 10px; font-size: 15px; font-weight: 600;">Titles (filtered)</h2>
-        <div style="color: #fff; font-size: 36px; font-weight: 700; line-height: 1; margin-bottom: 12px; text-shadow: 0 2px 8px rgba(0,0,0,0.3);">${stats.total.toLocaleString("en-US")}</div>
-        <div style="background: rgba(255,255,255,0.08); border-radius: 6px; padding: 8px; margin-bottom: 10px;">
-          <div style="color: #bbb; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">Platform Breakdown</div>
-          <div style="display: grid; grid-template-columns: 1fr; gap: 4px; font-size: 11px;">
-            <div style="color: #E60026; font-weight: 600;">Amazon <span style="color: #fff; float: right;">${stats.platformCounts.Amazon.toLocaleString("en-US")}</span></div>
-            <div style="color: #0275D8; font-weight: 600;">Netflix <span style="color: #fff; float: right;">${stats.platformCounts.Netflix.toLocaleString("en-US")}</span></div>
-            <div style="color: #2ECC71; font-weight: 600;">Hulu <span style="color: #fff; float: right;">${stats.platformCounts.Hulu.toLocaleString("en-US")}</span></div>
-            <div style="color: #F39C12; font-weight: 600;">Disney+ <span style="color: #fff; float: right;">${stats.platformCounts["Disney+"].toLocaleString("en-US")}</span></div>
+      <div style="border-top: 1px solid rgba(255,255,255,0.15); padding-top: 10px; margin-top: 12px;">
+        <h2 style="color: #fff; margin-top: 0; margin-bottom: 8px; font-size: 14px; font-weight: 600;">Titles (filtered)</h2>
+        <div style="color: #fff; font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 10px; text-shadow: 0 2px 8px rgba(0,0,0,0.3);">${stats.total.toLocaleString("en-US")}</div>
+        <div style="background: rgba(255,255,255,0.08); border-radius: 6px; padding: 6px; margin-bottom: 8px;">
+          <div style="color: #bbb; font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600;">Platform Breakdown</div>
+          <div style="display: grid; grid-template-columns: 1fr; gap: 3px; font-size: 10px; color: #fff;">
+            <div style="font-weight: 600;"><span style="color: #E60026;">●</span> Amazon <span style="float: right;">${stats.platformCounts.Amazon.toLocaleString("en-US")}</span></div>
+            <div style="font-weight: 600;"><span style="color: #0275D8;">●</span> Netflix <span style="float: right;">${stats.platformCounts.Netflix.toLocaleString("en-US")}</span></div>
+            <div style="font-weight: 600;"><span style="color: #2ECC71;">●</span> Hulu <span style="float: right;">${stats.platformCounts.Hulu.toLocaleString("en-US")}</span></div>
+            <div style="font-weight: 600;"><span style="color: #F39C12;">●</span> Disney+ <span style="float: right;">${stats.platformCounts["Disney+"].toLocaleString("en-US")}</span></div>
           </div>
         </div>
-        <div style="display: flex; justify-content: center; margin-top: 10px;">${resize(width => titlesPie(Math.min(width, 140)))}</div>
+        <div style="display: flex; justify-content: center; margin-top: 8px;">${resize(width => titlesPie(Math.min(width, 120)))}</div>
       </div>
     </div>
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-      <div class="card" style="padding: 16px 16px 20px 16px;">
-        <h2 style="margin-top: 0; margin-bottom: 8px; font-size: 16px;">${vizType}</h2>
-        <div>${resize(width => createChart(width, null, 420))}</div>
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div class="card" style="padding: 10px 12px 12px 12px;">
+        <h2 style="margin-top: 0; margin-bottom: 6px; font-size: 14px;">${vizType}</h2>
+        <div>${resize(width => createChart(width, null, 360))}</div>
       </div>
-      <div class="card" style="padding: 14px 16px 16px 16px;">
-        <h2 style="margin-top: 0; margin-bottom: 6px; font-size: 15px;">Temporal Gap (Lines)</h2>
-        <div>${resize(width => createChart(width, "Temporal Gap (Lines)", 160))}</div>
-        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--theme-foreground-faintest);">
-          <h3 style="margin-top: 0; margin-bottom: 4px; font-size: 10px; font-weight: 600; color: var(--theme-foreground-muted);">Δ(IMDb − TMDb)</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-            <div style="padding: 4px; background: var(--theme-background-alt); border-radius: 4px;">
-              <div style="font-size: 8px; color: var(--theme-foreground-muted); margin-bottom: 2px;">Amazon</div>
-              <div style="font-size: 14px; font-weight: 700; color: #E60026;">${stats.meanDiffAmazon.toFixed(2)}</div>
+      <div class="card" style="padding: 10px 12px 12px 12px;">
+        <h2 style="margin-top: 0; margin-bottom: 6px; font-size: 14px;">Temporal Gap (Lines)</h2>
+        <div>${resize(width => createChart(width, "Temporal Gap (Lines)", 300))}</div>
+        <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--theme-foreground-faintest);">
+          <h3 style="margin-top: 0; margin-bottom: 3px; font-size: 9px; font-weight: 600; color: var(--theme-foreground-muted);">Δ(IMDb − TMDb)</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+            <div style="padding: 3px; background: var(--theme-background-alt); border-radius: 3px;">
+              <div style="font-size: 7px; color: var(--theme-foreground-muted); margin-bottom: 1px;">Amazon</div>
+              <div style="font-size: 12px; font-weight: 700; color: #E60026;">${stats.meanDiffAmazon.toFixed(2)}</div>
             </div>
-            <div style="padding: 4px; background: var(--theme-background-alt); border-radius: 4px;">
-              <div style="font-size: 8px; color: var(--theme-foreground-muted); margin-bottom: 2px;">Others</div>
-              <div style="font-size: 14px; font-weight: 700; color: #0275D8;">${stats.meanDiffOther.toFixed(2)}</div>
+            <div style="padding: 3px; background: var(--theme-background-alt); border-radius: 3px;">
+              <div style="font-size: 7px; color: var(--theme-foreground-muted); margin-bottom: 1px;">Others</div>
+              <div style="font-size: 12px; font-weight: 700; color: #0275D8;">${stats.meanDiffOther.toFixed(2)}</div>
             </div>
           </div>
         </div>
@@ -568,7 +597,7 @@ function createTemporalCard() {
 
 const colorOther = "#1f77b4";
 
-function createChart(width, forceMode = null) {
+function createChart(width, forceMode = null, heightOverride = null) {
   const currentMode = forceMode || vizType;
   
   if (!filteredMovies.length) {
@@ -580,8 +609,10 @@ function createChart(width, forceMode = null) {
     return div;
   }
 
-  const height = 450;
-  const margin = {top: 70, right: 40, bottom: 50, left: 60};
+  const height = heightOverride || 450;
+  const margin = currentMode === "Temporal Gap (Lines)" 
+    ? {top: 40, right: 30, bottom: 35, left: 50}
+    : {top: 50, right: 30, bottom: 40, left: 50};
 
   const svg = d3.create("svg")
     .attr("viewBox", [0, 0, width, height])
@@ -624,9 +655,10 @@ function createChart(width, forceMode = null) {
       .call(d3.axisBottom(x))
       .call(g => g.append("text")
         .attr("x", (width - margin.left - margin.right) / 2 + margin.left)
-        .attr("y", 35)
+        .attr("y", 30)
         .attr("fill", "currentColor")
         .attr("text-anchor", "middle")
+        .attr("font-size", 11)
         .text("TMDb score"));
 
     svg.append("g")
@@ -634,9 +666,10 @@ function createChart(width, forceMode = null) {
       .call(d3.axisLeft(y))
       .call(g => g.append("text")
         .attr("x", 0)
-        .attr("y", margin.top - 35)
+        .attr("y", margin.top - 25)
         .attr("fill", "currentColor")
         .attr("text-anchor", "start")
+        .attr("font-size", 11)
         .text("IMDb score"));
 
     svg.append("line")
@@ -752,27 +785,27 @@ function createChart(width, forceMode = null) {
 
     // Legend
     const legendItems = allPlatforms;
-    const itemWidth = 110;
+    const itemWidth = 100;
     const legendWidth = legendItems.length * itemWidth;
 
     const legend = svg.append("g")
-      .attr("transform", `translate(${width / 2 - legendWidth / 2}, ${margin.top - 50})`);
+      .attr("transform", `translate(${width / 2 - legendWidth / 2}, ${margin.top - 35})`);
 
     legendItems.forEach((name, i) => {
       const item = legend.append("g")
         .attr("transform", `translate(${i * itemWidth}, 0)`);
 
       item.append("circle")
-        .attr("r", 6)
+        .attr("r", 5)
         .attr("cx", 0)
         .attr("cy", 0)
         .attr("fill", colorScale(name))
         .attr("opacity", 0.95);
 
       item.append("text")
-        .attr("x", 10)
-        .attr("y", 4)
-        .attr("font-size", 13)
+        .attr("x", 9)
+        .attr("y", 3)
+        .attr("font-size", 11)
         .attr("font-weight", 600)
         .attr("fill", "currentColor")
         .text(name);
@@ -839,7 +872,7 @@ function createChart(width, forceMode = null) {
       .attr("transform", `translate(0,${height - margin.bottom})`)
       .call(d3.axisBottom(x0))
       .selectAll("text")
-      .attr("font-size", 11);
+      .attr("font-size", 10);
 
     svg.append("g")
       .attr("transform", `translate(${margin.left},0)`)
@@ -847,28 +880,28 @@ function createChart(width, forceMode = null) {
 
     // Legend
     const legendItems = allPlatforms;
-    const itemWidth = 110;
+    const itemWidth = 100;
     const legendWidth = legendItems.length * itemWidth;
 
     const legend = svg.append("g")
-      .attr("transform", `translate(${width / 2 - legendWidth / 2}, ${margin.top - 50})`);
+      .attr("transform", `translate(${width / 2 - legendWidth / 2}, ${margin.top - 35})`);
 
     legendItems.forEach((name, i) => {
       const item = legend.append("g")
         .attr("transform", `translate(${i * itemWidth}, 0)`);
 
       item.append("rect")
-        .attr("x", -8)
-        .attr("y", -6)
-        .attr("width", 12)
-        .attr("height", 12)
+        .attr("x", -7)
+        .attr("y", -5)
+        .attr("width", 10)
+        .attr("height", 10)
         .attr("fill", colorScale(name))
         .attr("opacity", 0.85);
 
       item.append("text")
-        .attr("x", 10)
-        .attr("y", 4)
-        .attr("font-size", 13)
+        .attr("x", 8)
+        .attr("y", 3)
+        .attr("font-size", 11)
         .attr("font-weight", 600)
         .attr("fill", "currentColor")
         .text(name);
@@ -948,17 +981,19 @@ function createChart(width, forceMode = null) {
 
     svg.append("g")
       .attr("transform", `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(x).tickFormat(d3.format("d")));
+      .call(d3.axisBottom(x).tickFormat(d3.format("d")).ticks(6))
+      .call(g => g.selectAll("text").attr("font-size", 9));
 
     svg.append("g")
       .attr("transform", `translate(${margin.left},0)`)
-      .call(d3.axisLeft(y))
+      .call(d3.axisLeft(y).ticks(5))
+      .call(g => g.selectAll("text").attr("font-size", 9))
       .call(g => g.append("text")
-        .attr("x", -40)
-        .attr("y", margin.top - 10)
+        .attr("x", -30)
+        .attr("y", margin.top - 8)
         .attr("fill", "currentColor")
         .attr("text-anchor", "start")
-        .attr("font-size", 12)
+        .attr("font-size", 10)
         .text("IMDb − TMDb gap"));
 
     svg.append("line")
@@ -971,28 +1006,28 @@ function createChart(width, forceMode = null) {
 
     // Legend
     const legendItems = activePlatforms;
-    const itemWidth = 110;
+    const itemWidth = 90;
     const legendWidth = legendItems.length * itemWidth;
 
     const legend = svg.append("g")
-      .attr("transform", `translate(${width / 2 - legendWidth / 2}, ${margin.top - 50})`);
+      .attr("transform", `translate(${width / 2 - legendWidth / 2}, ${margin.top - 30})`);
 
     legendItems.forEach((name, i) => {
       const item = legend.append("g")
         .attr("transform", `translate(${i * itemWidth}, 0)`);
 
       item.append("line")
-        .attr("x1", -12)
+        .attr("x1", -10)
         .attr("x2", 0)
         .attr("y1", 0)
         .attr("y2", 0)
         .attr("stroke", colorScale(name))
-        .attr("stroke-width", 2.5);
+        .attr("stroke-width", 2);
 
       item.append("text")
-        .attr("x", 6)
-        .attr("y", 4)
-        .attr("font-size", 13)
+        .attr("x", 5)
+        .attr("y", 3)
+        .attr("font-size", 10)
         .attr("font-weight", 600)
         .attr("fill", "currentColor")
         .text(name);
@@ -1011,13 +1046,13 @@ function createChart(width, forceMode = null) {
         .attr("d", lineGen(platform))
         .attr("fill", "none")
         .attr("stroke", colorScale(platform))
-        .attr("stroke-width", 2.5);
+        .attr("stroke-width", 2);
 
       svg.selectAll(`circle.${platform.replace('+', 'plus')}`).data(trends.filter(d => d[platform] !== null)).join("circle")
         .attr("class", platform.replace('+', 'plus'))
         .attr("cx", d => x(d.year))
         .attr("cy", d => y(d[platform]))
-        .attr("r", 3)
+        .attr("r", 2)
         .attr("fill", colorScale(platform));
     });
   }
@@ -1025,4 +1060,3 @@ function createChart(width, forceMode = null) {
   return svg.node();
 }
 ```
-
