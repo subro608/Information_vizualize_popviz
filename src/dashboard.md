@@ -175,6 +175,28 @@ toc: false
   min-width: 70px !important;
   text-align: center !important;
 }
+/* Genre grid layout */
+.genre-grid-container .observablehq--inspect {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 2px 4px !important;
+  font-size: 10px !important;
+}
+
+.genre-grid-container .observablehq--inspect label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  margin: 0 !important;
+  padding: 3px 2px !important;
+  white-space: nowrap !important;
+  font-size: 10px !important;
+}
+
+.genre-grid-container .observablehq--inspect input[type="checkbox"] {
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
 /* Volume-style vote control */
 .vote-control-container {
   background: rgba(255,255,255,0.05);
@@ -420,6 +442,19 @@ toc: false
 .filter-section-header:first-child {
   margin-top: 0;
 }
+/* Compact genre checkbox grid */
+.observablehq--inspect label {
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+  margin: 0 !important;
+  padding: 2px 0;
+  white-space: nowrap;
+}
+
+.observablehq--inspect input[type="checkbox"] {
+  margin: 0 !important;
+}
 </style>
 <!-- <style>
 /* Fix text colors in dark filter panel */
@@ -456,12 +491,17 @@ const netflix_raw = await FileAttachment("netflix_titles.csv").csv({typed: true}
 const hulu_raw    = await FileAttachment("hulu_titles.csv").csv({typed: true});
 const disney_raw  = await FileAttachment("disney_titles.csv").csv({typed: true});
 
+// First, update your data cleaning to parse genres
 function clean(row, platform) {
   const release_year = +row.release_year;
   const imdb_score   = +row.imdb_score;
   const tmdb_score   = +row.tmdb_score;
   const imdb_votes   = +row.imdb_votes;
-  // DELETE: const tmdb_votes = +row.tmdb_votes;
+  
+  // Parse genres from string format "['genre1', 'genre2']" to array
+  const genres = row.genres 
+    ? row.genres.replace(/[\[\]']/g, '').split(',').map(g => g.trim())
+    : [];
 
   return {
     title: row.title,
@@ -469,8 +509,9 @@ function clean(row, platform) {
     imdb_score,
     tmdb_score,
     imdb_votes,
-    // DELETE: tmdb_votes,
     platform,
+    genres: genres,
+    primary_genre: genres[0] || 'Unknown',
     is_amazon: platform === "Amazon" && release_year >= 2013,
     score_diff: imdb_score - tmdb_score,
     log_votes: Math.log10((imdb_votes || 0) + 1)
@@ -505,13 +546,46 @@ const platformInput = Inputs.checkbox(
 );
 
 const vizTypeInput = Inputs.radio(
-  ["Bias Detector (Scatter)", "Quality Control (Box Plot)"],
+  ["Bias Detector (Scatter)", "Quality Control (Box Plot)", "Genre Analysis"],
   {
     label: "Visualization",
     value: "Bias Detector (Scatter)"
   }
 );
 
+// Create custom grid layout for genres
+const genreFilterInput = (() => {
+  const genres = [
+    "action", "animation", "comedy", "crime", "documentation", 
+    "drama", "european", "family", "fantasy", "history", 
+    "horror", "music", "reality", "romance", "scifi", 
+    "sport", "thriller", "war", "western"
+  ];
+  
+  const form = html`<form style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 8px; font-size: 11px;">
+    ${genres.map(genre => html`<label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 2px 0;">
+      <input type="checkbox" name="genre" value="${genre}" style="margin: 0; cursor: pointer;">
+      <span style="color: #fff;">${genre.charAt(0).toUpperCase() + genre.slice(1)}</span>
+    </label>`)}
+  </form>`;
+  
+  form.addEventListener('input', () => {
+    const checked = Array.from(form.querySelectorAll('input[type="checkbox"]:checked'))
+      .map(input => input.value);
+    form.value = checked;
+    form.dispatchEvent(new Event('input', {bubbles: true}));
+  });
+  
+  form.value = [];
+  return form;
+})();
+const genreSubTypeInput = Inputs.radio(
+  ["Score Bias (Δ)", "IMDb Scores", "TMDb Scores"],
+  {
+    label: "Genre View",
+    value: "Score Bias (Δ)"
+  }
+);
 const yearDialInput = yearDial({
   min: 2000,
   max: 2024,
@@ -591,6 +665,7 @@ const selectedPlatforms = Generators.input(platformInput);
 const vizType = Generators.input(vizTypeInput);
 const selectedYear = Generators.input(yearDialInput);
 const minVotes = Generators.input(minVotesInput);
+const selectedGenres = Generators.input(genreFilterInput);  // NEW
 
 
 // Toggle input for temporal expansion
@@ -603,15 +678,22 @@ const temporalExpanded = Generators.input(temporalToggleInput);
 const filteredMovies = (() => {
   const year = typeof selectedYear === "number" ? selectedYear : null;
   const minVotesVal = typeof minVotes === "number" ? minVotes : 0;
-  // DELETE: const minTmdbVotesVal = typeof minTmdbVotes === "number" ? minTmdbVotes : 0;
   const platforms = Array.isArray(selectedPlatforms) ? selectedPlatforms : [];
+  const genres = Array.isArray(selectedGenres) ? selectedGenres : [];  // NEW
 
-  let current = movies.filter(d =>
-    d.imdb_votes >= minVotesVal &&
-    // DELETE: d.tmdb_votes >= minTmdbVotesVal &&
-    (year === null ? true : d.release_year === year) &&
-    (platforms.length === 0 || platforms.includes(d.platform))
-  );
+  let current = movies.filter(d => {
+    // Existing filters
+    const passesBasicFilters = 
+      d.imdb_votes >= minVotesVal &&
+      (year === null ? true : d.release_year === year) &&
+      (platforms.length === 0 || platforms.includes(d.platform));
+    
+    // NEW: Genre filter - if no genres selected, show all
+    const passesGenreFilter = genres.length === 0 || 
+      d.genres.some(g => genres.includes(g.toLowerCase()));
+    
+    return passesBasicFilters && passesGenreFilter;  // MODIFIED
+  });
 
   return current;
 })();
@@ -992,6 +1074,15 @@ function titlesPie(width = 260) {
       <div style="margin-bottom: 10px;">
         ${vizTypeInput}
       </div>
+      <div style="margin-bottom: 10px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
+        <div class="filter-section-header" style="margin-top: 0;">Filter by Genre</div>
+        <div class="genre-grid-container">
+          ${genreFilterInput}
+        </div>
+        <div style="font-size: 9px; color: rgba(255,255,255,0.5); margin-top: 6px; font-style: italic;">
+          Leave empty to show all genres
+        </div>
+      </div>
       <div class="year-dial-container" style="margin-bottom: 10px;">
         ${yearDialInput}
       </div>
@@ -1077,9 +1168,276 @@ function createTemporalCard() {
 }
 ``` -->
 ```js
+function createGenreAnalysis(width) {
+  const height = 450;
+  const margin = {top: 60, right: 140, bottom: 50, left: 120};
+  
+  if (!filteredMovies.length) {
+    const div = document.createElement("div");
+    div.style.padding = "24px";
+    div.style.textAlign = "center";
+    div.style.color = "var(--theme-foreground-muted)";
+    div.textContent = "No titles match the current filters.";
+    return div;
+  }
+
+  // Get all genres and count titles per genre
+  const genreCounts = new Map();
+  filteredMovies.forEach(d => {
+    d.genres.forEach(g => {
+      if (!genreCounts.has(g)) {
+        genreCounts.set(g, 0);
+      }
+      genreCounts.set(g, genreCounts.get(g) + 1);
+    });
+  });
+
+  // Filter to genres with at least 10 titles
+  const validGenres = Array.from(genreCounts.entries())
+    .filter(([genre, count]) => count >= 10)
+    .map(([genre]) => genre)
+    .sort();
+
+  if (!validGenres.length) {
+    const div = document.createElement("div");
+    div.style.padding = "24px";
+    div.style.textAlign = "center";
+    div.style.color = "var(--theme-foreground-muted)";
+    div.textContent = "Not enough titles per genre for analysis.";
+    return div;
+  }
+
+  // Calculate average scores by genre and platform
+  const allPlatforms = ["Amazon", "Netflix", "Hulu", "Disney+"];
+  const colorScale = d3.scaleOrdinal()
+    .domain(allPlatforms)
+    .range(["#E60026", "#0275D8", "#2ECC71", "#F39C12"]);
+
+  const genreStats = [];
+  validGenres.forEach(genre => {
+    allPlatforms.forEach(platform => {
+      const genreTitles = filteredMovies.filter(d => 
+        d.genres.includes(genre) && d.platform === platform
+      );
+      
+      if (genreTitles.length >= 3) {
+        genreStats.push({
+          genre,
+          platform,
+          count: genreTitles.length,
+          avg_imdb: d3.mean(genreTitles, d => d.imdb_score),
+          avg_tmdb: d3.mean(genreTitles, d => d.tmdb_score),
+          avg_diff: d3.mean(genreTitles, d => d.score_diff)
+        });
+      }
+    });
+  });
+
+  if (!genreStats.length) {
+    const div = document.createElement("div");
+    div.style.padding = "24px";
+    div.style.textAlign = "center";
+    div.style.color = "var(--theme-foreground-muted)";
+    div.textContent = "Not enough data per platform/genre combination.";
+    return div;
+  }
+
+  // Get unique genres that have data
+  const activeGenres = Array.from(new Set(genreStats.map(d => d.genre)));
+
+  const svg = d3.create("svg")
+    .attr("viewBox", [0, 0, width, height])
+    .attr("width", width)
+    .attr("height", height)
+    .style("max-width", "100%")
+    .style("height", "auto");
+
+  // Scales
+  const x = d3.scaleBand()
+    .domain(activeGenres)
+    .range([margin.left, width - margin.right])
+    .padding(0.2);
+
+  const xPlatform = d3.scaleBand()
+    .domain(allPlatforms)
+    .range([0, x.bandwidth()])
+    .padding(0.05);
+
+  const y = d3.scaleLinear()
+    .domain([-1, 1])
+    .range([height - margin.bottom, margin.top])
+    .nice();
+
+  // Axes
+  svg.append("g")
+    .attr("transform", `translate(0,${height - margin.bottom})`)
+    .call(d3.axisBottom(x))
+    .selectAll("text")
+    .attr("transform", "rotate(-45)")
+    .attr("text-anchor", "end")
+    .attr("dx", "-0.5em")
+    .attr("dy", "0.5em")
+    .attr("font-size", 10);
+
+  svg.append("g")
+    .attr("transform", `translate(${margin.left},0)`)
+    .call(d3.axisLeft(y).ticks(8));
+
+  // Y-axis label
+  svg.append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -(height - margin.bottom - margin.top) / 2 - margin.top)
+    .attr("y", margin.left - 75)
+    .attr("text-anchor", "middle")
+    .attr("font-size", 12)
+    .attr("fill", "currentColor")
+    .text("Δ (IMDb − TMDb)");
+
+  // Zero line
+  svg.append("line")
+    .attr("x1", margin.left)
+    .attr("x2", width - margin.right)
+    .attr("y1", y(0))
+    .attr("y2", y(0))
+    .attr("stroke", "#999")
+    .attr("stroke-width", 1.5)
+    .attr("stroke-dasharray", "4,3");
+
+  // Title
+  svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", margin.top - 30)
+    .attr("text-anchor", "middle")
+    .attr("font-size", 14)
+    .attr("font-weight", 600)
+    .attr("fill", "currentColor")
+    .text("Genre-Specific Score Bias by Platform");
+
+  // Subtitle
+  svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", margin.top - 12)
+    .attr("text-anchor", "middle")
+    .attr("font-size", 10)
+    .attr("fill", "var(--theme-foreground-muted)")
+    .text("Positive = IMDb rates higher | Negative = TMDb rates higher");
+
+  // Create tooltip
+  const tooltip = d3.select("body")
+    .selectAll(".genre-tooltip")
+    .data([null])
+    .join("div")
+    .attr("class", "genre-tooltip")
+    .style("position", "absolute")
+    .style("visibility", "hidden")
+    .style("background-color", "rgba(0, 0, 0, 0.9)")
+    .style("color", "white")
+    .style("padding", "12px 16px")
+    .style("border-radius", "8px")
+    .style("font-size", "13px")
+    .style("pointer-events", "none")
+    .style("z-index", "1000")
+    .style("box-shadow", "0 4px 12px rgba(0,0,0,0.4)")
+    .style("max-width", "280px")
+    .style("line-height", "1.5");
+
+  // Draw bars
+  const bars = svg.selectAll("g.genre-bar")
+    .data(genreStats)
+    .join("g")
+    .attr("class", "genre-bar")
+    .attr("transform", d => `translate(${x(d.genre)},0)`);
+
+  bars.append("rect")
+    .attr("x", d => xPlatform(d.platform))
+    .attr("width", xPlatform.bandwidth())
+    .attr("y", d => d.avg_diff >= 0 ? y(d.avg_diff) : y(0))
+    .attr("height", d => Math.abs(y(d.avg_diff) - y(0)))
+    .attr("fill", d => colorScale(d.platform))
+    .attr("opacity", 0.85)
+    .attr("rx", 2)
+    .attr("ry", 2)
+    .style("cursor", "pointer")
+    .on("mouseover", function(event, d) {
+      d3.select(this)
+        .attr("opacity", 1)
+        .attr("stroke", "white")
+        .attr("stroke-width", 2);
+
+      const sign = d.avg_diff >= 0 ? "+" : "";
+      const tooltipHtml = `
+        <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: ${colorScale(d.platform)};">
+          ${d.platform} • ${d.genre}
+        </div>
+        <div style="margin-bottom: 6px;">
+          <strong>Titles analyzed:</strong> ${d.count}
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 4px;">
+          <div>
+            <div style="color: #aaa; font-size: 11px;">Avg IMDb</div>
+            <div style="font-weight: 600; font-size: 16px;">${d.avg_imdb.toFixed(2)}</div>
+          </div>
+          <div>
+            <div style="color: #aaa; font-size: 11px;">Avg TMDb</div>
+            <div style="font-weight: 600; font-size: 16px;">${d.avg_tmdb.toFixed(2)}</div>
+          </div>
+        </div>
+        <div style="margin-top: 6px;">
+          <strong>Difference (Δ):</strong> ${sign}${d.avg_diff.toFixed(3)}
+        </div>
+        <div style="margin-top: 6px; font-size: 11px; color: #999;">
+          ${d.avg_diff > 0 ? "IMDb users rate this genre higher" : "TMDb users rate this genre higher"}
+        </div>
+      `;
+
+      tooltip
+        .style("visibility", "visible")
+        .html(tooltipHtml);
+    })
+    .on("mousemove", function(event) {
+      tooltip
+        .style("top", (event.pageY - 10) + "px")
+        .style("left", (event.pageX + 15) + "px");
+    })
+    .on("mouseout", function() {
+      d3.select(this)
+        .attr("opacity", 0.85)
+        .attr("stroke", "none");
+      
+      tooltip.style("visibility", "hidden");
+    });
+
+  // Legend
+  const legend = svg.append("g")
+    .attr("transform", `translate(${width - margin.right + 15}, ${margin.top})`);
+
+  allPlatforms.forEach((platform, i) => {
+    const item = legend.append("g")
+      .attr("transform", `translate(0, ${i * 22})`);
+
+    item.append("rect")
+      .attr("width", 12)
+      .attr("height", 12)
+      .attr("fill", colorScale(platform))
+      .attr("opacity", 0.85)
+      .attr("rx", 2);
+
+    item.append("text")
+      .attr("x", 18)
+      .attr("y", 9)
+      .attr("font-size", 11)
+      .attr("font-weight", 600)
+      .attr("fill", "currentColor")
+      .text(platform);
+  });
+
+  return svg.node();
+}
+```
+
+```js
 
 const colorOther = "#1f77b4";
-
 function createChart(width, forceMode = null, heightOverride = null) {
   const currentMode = forceMode || vizType;
   
@@ -1090,6 +1448,11 @@ function createChart(width, forceMode = null, heightOverride = null) {
     div.style.color = "var(--theme-foreground-muted)";
     div.textContent = "No titles match the current filters.";
     return div;
+  }
+
+  // ========= NEW MODE: GENRE ANALYSIS =========
+  if (currentMode === "Genre Analysis") {
+    return createGenreAnalysis(width);
   }
 
   const height = heightOverride || 450;
@@ -1426,7 +1789,6 @@ function createChart(width, forceMode = null, heightOverride = null) {
     
     const temporalData = movies.filter(d => 
       d.imdb_votes >= minVotes &&
-      // DELETE: d.tmdb_votes >= minTmdbVotes &&
       (platforms.length === 0 || platforms.includes(d.platform))
     );
 
@@ -1486,6 +1848,7 @@ function createChart(width, forceMode = null, heightOverride = null) {
       .attr("y1", y(0))
       .attr("y2", y(0))
       .attr("stroke", "#999")
+      .attr("stroke-width", 1.5)
       .attr("stroke-dasharray", "4,3");
 
     // Legend
@@ -1544,3 +1907,4 @@ function createChart(width, forceMode = null, heightOverride = null) {
   return svg.node();
 }
 ```
+
