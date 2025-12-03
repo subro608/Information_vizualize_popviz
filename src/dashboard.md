@@ -3,7 +3,451 @@ theme: dashboard
 title: Streaming Score Bias Dashboard
 toc: false
 ---
+<style>
+/* Fix text colors in dark filter panel */
+.card label {
+  color: #fff !important;
+}
+.card input[type="checkbox"] + label,
+.card input[type="radio"] + label {
+  color: #fff !important;
+}
+.card input {
+  color: #fff !important;
+}
+/* Fix Observable input labels */
+.observablehq label {
+  color: #fff !important;
+}
+.observablehq input[type="range"] {
+  color: #fff !important;
+}
+.observablehq input[type="number"] {
+  color: #000 !important;
+  background: #fff !important;
+  border: 1px solid #444 !important;
+  border-radius: 4px !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+/* Fix any remaining dark text */
+.card * {
+  color: inherit;
+}
+/* Beautiful Year Dial Enhancement */
+.year-dial-container {
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+/* Make the white circle brighter */
+.year-dial-container circle[fill="white"],
+.year-dial-container circle[fill="#fff"] {
+  fill: #ffffff !important;
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.4));
+}
 
+
+.year-dial-container text {
+  font-weight: 700 !important;
+  font-size: 22px !important;
+  fill: #0275D8 !important;
+  filter: drop-shadow(0 0 12px rgba(2, 117, 216, 0.7));
+}
+
+/* Style the dial circle */
+.year-dial-container circle[fill="white"] {
+  fill: #ffffff;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+/* Style the dial track */
+.year-dial-container circle[stroke] {
+  stroke: rgba(255, 255, 255, 0.15) !important;
+  stroke-width: 2 !important;
+}
+
+
+/* Style the active arc/path if it exists */
+.year-dial-container path {
+  stroke: #0275D8 !important;
+  filter: drop-shadow(0 0 6px rgba(2, 117, 216, 0.6));
+}
+
+/* Style the handle/dot */
+.year-dial-container circle[r="8"],
+.year-dial-container circle[r="6"] {
+  fill: #0275D8 !important;
+  stroke: #fff !important;
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 3px 10px rgba(2, 117, 216, 0.8));
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+.year-dial-container circle[r="8"]:active,
+.year-dial-container circle[r="6"]:active {
+  cursor: grabbing;
+  filter: drop-shadow(0 4px 14px rgba(2, 117, 216, 1));
+}
+
+.year-dial-container circle[r="8"]:hover,
+.yearsure-dial-container circle[r="6"]:hover {
+  filter: drop-shadow(0 3px 12px rgba(2, 117, 216, 0.8));
+  transform: scale(1.1);
+}
+/* Add subtle label styling */
+.year-dial-container + * {
+  margin-top: 8px;
+}
+/* Fix the "Release year" label text */
+.year-dial-container label,
+.year-dial-container .observablehq--inspect label,
+.year-dial-container form > label {
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+}
+/* Make sure the year number in the circle stays blue */
+.year-dial-container svg text {
+  fill: #0275D8 !important;
+  font-weight: 700 !important;
+  filter: drop-shadow(0 0 12px rgba(2, 117, 216, 0.7));
+}
+/* Beautiful range slider styling */
+.observablehq input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, #0275D8 0%, #0275D8 var(--value-percent), #3a3a3a var(--value-percent), #3a3a3a 100%);
+  outline: none;
+}
+
+.observablehq input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0275D8, #0a9eff);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(2, 117, 216, 0.4);
+  border: 2px solid #fff;
+  transition: all 0.2s ease;
+}
+
+.observablehq input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 3px 12px rgba(2, 117, 216, 0.6);
+}
+
+.observablehq input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0275D8, #0a9eff);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(2, 117, 216, 0.4);
+  border: 2px solid #fff;
+  transition: all 0.2s ease;
+}
+
+.observablehq input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 3px 12px rgba(2, 117, 216, 0.6);
+}
+
+/* Style the range input container */
+.observablehq--inspect input[type="range"] {
+  margin: 8px 0;
+}
+
+/* Number input styling */
+.observablehq [type="number"] {
+  min-width: 70px !important;
+  text-align: center !important;
+}
+/* Volume-style vote control */
+.vote-control-container {
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.vote-control-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 10px;
+  opacity: 0.9;
+}
+
+.vote-control-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.vote-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: linear-gradient(135deg, rgba(2, 117, 216, 0.2), rgba(2, 117, 216, 0.1));
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.vote-btn:hover {
+  background: linear-gradient(135deg, rgba(2, 117, 216, 0.4), rgba(2, 117, 216, 0.2));
+  border-color: rgba(255,255,255,0.4);
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(2, 117, 216, 0.3);
+}
+
+.vote-btn:active {
+  transform: scale(0.95);
+}
+
+.vote-display {
+  flex: 1;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  padding: 8px 12px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.vote-number {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0275D8;
+  text-shadow: 0 0 10px rgba(2, 117, 216, 0.5);
+}
+
+.vote-bar-container {
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+
+.vote-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0275D8, #0a9eff);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 8px rgba(2, 117, 216, 0.6);
+}
+
+.vote-bar-container:hover .vote-bar-fill {
+  box-shadow: 0 0 12px rgba(2, 117, 216, 0.8);
+}
+/* Modern Platform Checkboxes */
+.platform-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.platform-checkbox {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.platform-checkbox:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+  transform: translateX(2px);
+}
+
+.platform-checkbox input[type="checkbox"] {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 5px;
+  margin-right: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.platform-checkbox input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, #0275D8, #0a9eff);
+  border-color: #0275D8;
+  box-shadow: 0 0 10px rgba(2, 117, 216, 0.5);
+}
+
+.platform-checkbox input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.platform-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  flex: 1;
+}
+
+.platform-color-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: auto;
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* Modern Radio Buttons for Visualization */
+.viz-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* Force all text in year dial container to be white/light */
+.year-dial-container * {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+.viz-radio {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.viz-radio:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.viz-radio.selected {
+  background: linear-gradient(135deg, rgba(2, 117, 216, 0.15), rgba(2, 117, 216, 0.05));
+  border-color: #0275D8;
+  box-shadow: 0 0 12px rgba(2, 117, 216, 0.3);
+}
+
+.viz-radio input[type="radio"] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  margin-right: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.viz-radio input[type="radio"]:checked {
+  border-color: #0275D8;
+  background: rgba(2, 117, 216, 0.2);
+}
+
+.viz-radio input[type="radio"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0275D8, #0a9eff);
+  box-shadow: 0 0 8px rgba(2, 117, 216, 0.8);
+}
+
+.viz-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+}
+
+/* Section Headers */
+.filter-section-header {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.6);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  margin-top: 16px;
+}
+
+.filter-section-header:first-child {
+  margin-top: 0;
+}
+</style>
+<!-- <style>
+/* Fix text colors in dark filter panel */
+.card label {
+  color: #fff !important;
+}
+.card input[type="checkbox"] + label,
+.card input[type="radio"] + label {
+  color: #fff !important;
+}
+.card input {
+  color: #fff !important;
+}
+/* Fix Observable input labels */
+.observablehq label {
+  color: #fff !important;
+}
+.observablehq input[type="range"] {
+  color: #fff !important;
+}
+.observablehq input[type="number"] {
+  color: #000 !important;
+}
+/* Fix any remaining dark text */
+.card * {
+  color: inherit;
+}
+</style> -->
 # Dashboard
 ```js
 // Load and clean data
@@ -17,6 +461,7 @@ function clean(row, platform) {
   const imdb_score   = +row.imdb_score;
   const tmdb_score   = +row.tmdb_score;
   const imdb_votes   = +row.imdb_votes;
+  // DELETE: const tmdb_votes = +row.tmdb_votes;
 
   return {
     title: row.title,
@@ -24,6 +469,7 @@ function clean(row, platform) {
     imdb_score,
     tmdb_score,
     imdb_votes,
+    // DELETE: tmdb_votes,
     platform,
     is_amazon: platform === "Amazon" && release_year >= 2013,
     score_diff: imdb_score - tmdb_score,
@@ -73,11 +519,70 @@ const yearDialInput = yearDial({
   label: "Release year"
 });
 
-const minVotesInput = Inputs.range([0, 50000], {
-  label: "Min IMDb votes",
-  value: 1000,
-  step: 1000
-});
+// Create a custom volume-style vote control
+function createVoteControl(initialValue = 1000) {
+  const container = html`<div class="vote-control-container">
+    <label class="vote-control-label">MIN IMDb VOTES</label>
+    <div class="vote-control-wrapper">
+      <button class="vote-btn vote-btn-minus">−</button>
+      <div class="vote-display">
+        <span class="vote-number">${initialValue.toLocaleString()}</span>
+      </div>
+      <button class="vote-btn vote-btn-plus">+</button>
+    </div>
+    <div class="vote-bar-container">
+      <div class="vote-bar-fill" style="width: ${(initialValue / 50000) * 100}%"></div>
+    </div>
+  </div>`;
+
+  let currentValue = initialValue;
+  const numberDisplay = container.querySelector('.vote-number');
+  const barFill = container.querySelector('.vote-bar-fill');
+  const minusBtn = container.querySelector('.vote-btn-minus');
+  const plusBtn = container.querySelector('.vote-btn-plus');
+
+  function updateDisplay() {
+    numberDisplay.textContent = currentValue.toLocaleString();
+    barFill.style.width = `${(currentValue / 50000) * 100}%`;
+    container.value = currentValue;
+    container.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  minusBtn.onclick = () => {
+    if (currentValue > 0) {
+      currentValue = Math.max(0, currentValue - 1000);
+      updateDisplay();
+    }
+  };
+
+  plusBtn.onclick = () => {
+    if (currentValue < 50000) {
+      currentValue = Math.min(50000, currentValue + 1000);
+      updateDisplay();
+    }
+  };
+
+  // Allow clicking on the bar to set value
+  const barContainer = container.querySelector('.vote-bar-container');
+  barContainer.onclick = (e) => {
+    const rect = barContainer.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    currentValue = Math.round((percent * 50000) / 1000) * 1000;
+    currentValue = Math.max(0, Math.min(50000, currentValue));
+    updateDisplay();
+  };
+
+  container.value = currentValue;
+  return container;
+}
+
+const minVotesInput = createVoteControl(1000);
+// const minVotesInput = Inputs.range([0, 50000], {
+//   label: html`<span style="font-size: 11px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Min IMDb votes</span>`,
+//   value: 1000,
+//   step: 1000,
+//   format: (x) => x.toLocaleString()
+// });
 ```
 
 ```js
@@ -86,6 +591,7 @@ const selectedPlatforms = Generators.input(platformInput);
 const vizType = Generators.input(vizTypeInput);
 const selectedYear = Generators.input(yearDialInput);
 const minVotes = Generators.input(minVotesInput);
+
 
 // Toggle input for temporal expansion
 const temporalToggleInput = Inputs.toggle({label: "Expand Temporal View", value: true});
@@ -97,10 +603,12 @@ const temporalExpanded = Generators.input(temporalToggleInput);
 const filteredMovies = (() => {
   const year = typeof selectedYear === "number" ? selectedYear : null;
   const minVotesVal = typeof minVotes === "number" ? minVotes : 0;
+  // DELETE: const minTmdbVotesVal = typeof minTmdbVotes === "number" ? minTmdbVotes : 0;
   const platforms = Array.isArray(selectedPlatforms) ? selectedPlatforms : [];
 
   let current = movies.filter(d =>
     d.imdb_votes >= minVotesVal &&
+    // DELETE: d.tmdb_votes >= minTmdbVotesVal &&
     (year === null ? true : d.release_year === year) &&
     (platforms.length === 0 || platforms.includes(d.platform))
   );
@@ -154,10 +662,12 @@ function createTemporalMini(width = 300) {
   const platforms = Array.isArray(selectedPlatforms) ? selectedPlatforms : [];
   const activePlatforms = platforms.length > 0 ? platforms : allPlatforms;
   
-  const temporalData = movies.filter(d => 
-    d.imdb_votes >= minVotes &&
-    (platforms.length === 0 || platforms.includes(d.platform))
-  );
+ // In createTemporalMini:
+const temporalData = movies.filter(d => 
+  d.imdb_votes >= minVotes &&
+  // DELETE: d.tmdb_votes >= minTmdbVotes &&
+  (platforms.length === 0 || platforms.includes(d.platform))
+);
 
   const groups = d3.groups(temporalData, d => d.release_year).sort((a, b) => a[0] - b[0]);
 
@@ -473,54 +983,56 @@ function titlesPie(width = 260) {
 ```
 <div class="grid grid-cols-1">
 
-  <div class="grid gap-3" style="grid-template-columns: 280px 1fr;">
-    <div class="card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border: 1px solid #333; padding: 16px;">
-      <h2 style="color: #fff; margin-top: 0; margin-bottom: 12px; font-size: 15px; font-weight: 600;">Filters</h2>
-      <div style="margin-bottom: 14px;">
+  <div class="grid gap-2" style="grid-template-columns: 260px 1fr;">
+    <div class="card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border: 1px solid #333; padding: 12px;">
+      <h2 style="color: #fff; margin-top: 0; margin-bottom: 10px; font-size: 14px; font-weight: 600;">Filters</h2>
+      <div style="margin-bottom: 10px;">
         ${platformInput}
       </div>
-      <div style="margin-bottom: 14px;">
+      <div style="margin-bottom: 10px;">
         ${vizTypeInput}
       </div>
-      <div style="margin-bottom: 14px;">
+      <div class="year-dial-container" style="margin-bottom: 10px;">
         ${yearDialInput}
       </div>
-      <div style="margin-bottom: 16px;">
+      <div style="margin-bottom: 12px;">
         ${minVotesInput}
       </div>
-      <div style="border-top: 1px solid rgba(255,255,255,0.15); padding-top: 14px; margin-top: 16px;">
-        <h2 style="color: #fff; margin-top: 0; margin-bottom: 10px; font-size: 15px; font-weight: 600;">Titles (filtered)</h2>
-        <div style="color: #fff; font-size: 36px; font-weight: 700; line-height: 1; margin-bottom: 12px; text-shadow: 0 2px 8px rgba(0,0,0,0.3);">${stats.total.toLocaleString("en-US")}</div>
-        <div style="background: rgba(255,255,255,0.08); border-radius: 6px; padding: 8px; margin-bottom: 10px;">
-          <div style="color: #bbb; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">Platform Breakdown</div>
-          <div style="display: grid; grid-template-columns: 1fr; gap: 4px; font-size: 11px;">
+      <div style="border-top: 1px solid rgba(255,255,255,0.15); padding-top: 10px; margin-top: 12px;">
+        <h2 style="color: #fff; margin-top: 0; margin-bottom: 8px; font-size: 14px; font-weight: 600;">Titles (filtered)</h2>
+        <div style="color: #fff; font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 10px; text-shadow: 0 2px 8px rgba(0,0,0,0.3);">${stats.total.toLocaleString("en-US")}</div>
+        <div style="background: rgba(255,255,255,0.08); border-radius: 6px; padding: 6px; margin-bottom: 12px;">
+          <div style="color: #bbb; font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 600;">Platform Breakdown</div>
+          <div style="display: grid; grid-template-columns: 1fr; gap: 3px; font-size: 10px;">
             <div style="color: #E60026; font-weight: 600;">Amazon <span style="color: #fff; float: right;">${stats.platformCounts.Amazon.toLocaleString("en-US")}</span></div>
             <div style="color: #0275D8; font-weight: 600;">Netflix <span style="color: #fff; float: right;">${stats.platformCounts.Netflix.toLocaleString("en-US")}</span></div>
             <div style="color: #2ECC71; font-weight: 600;">Hulu <span style="color: #fff; float: right;">${stats.platformCounts.Hulu.toLocaleString("en-US")}</span></div>
             <div style="color: #F39C12; font-weight: 600;">Disney+ <span style="color: #fff; float: right;">${stats.platformCounts["Disney+"].toLocaleString("en-US")}</span></div>
           </div>
         </div>
-        <div style="display: flex; justify-content: center; margin-top: 10px;">${resize(width => titlesPie(Math.min(width, 140)))}</div>
+        <div style="display: flex; justify-content: center; align-items: center; margin-top: 16px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+          ${titlesPie(220)}
+        </div>
       </div>
     </div>
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-      <div class="card" style="padding: 16px 16px 20px 16px;">
-        <h2 style="margin-top: 0; margin-bottom: 8px; font-size: 16px;">${vizType}</h2>
-        <div>${resize(width => createChart(width, null, 420))}</div>
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div class="card" style="padding: 10px 12px 12px 12px;">
+        <h2 style="margin-top: 0; margin-bottom: 6px; font-size: 14px;">${vizType}</h2>
+        <div>${resize(width => createChart(width, null, 320))}</div>
       </div>
-      <div class="card" style="padding: 14px 16px 16px 16px;">
-        <h2 style="margin-top: 0; margin-bottom: 6px; font-size: 15px;">Temporal Gap (Lines)</h2>
-        <div>${resize(width => createChart(width, "Temporal Gap (Lines)", 160))}</div>
-        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--theme-foreground-faintest);">
-          <h3 style="margin-top: 0; margin-bottom: 4px; font-size: 10px; font-weight: 600; color: var(--theme-foreground-muted);">Δ(IMDb − TMDb)</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-            <div style="padding: 4px; background: var(--theme-background-alt); border-radius: 4px;">
-              <div style="font-size: 8px; color: var(--theme-foreground-muted); margin-bottom: 2px;">Amazon</div>
-              <div style="font-size: 14px; font-weight: 700; color: #E60026;">${stats.meanDiffAmazon.toFixed(2)}</div>
+      <div class="card" style="padding: 10px 12px 12px 12px;">
+        <h2 style="margin-top: 0; margin-bottom: 6px; font-size: 14px;">Temporal Gap (Lines)</h2>
+        <div>${resize(width => createChart(width, "Temporal Gap (Lines)", 280))}</div>
+        <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--theme-foreground-faintest);">
+          <h3 style="margin-top: 0; margin-bottom: 3px; font-size: 9px; font-weight: 600; color: var(--theme-foreground-muted);">Δ(IMDb − TMDb)</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+            <div style="padding: 3px; background: var(--theme-background-alt); border-radius: 3px;">
+              <div style="font-size: 7px; color: var(--theme-foreground-muted); margin-bottom: 1px;">Amazon</div>
+              <div style="font-size: 12px; font-weight: 700; color: #E60026;">${stats.meanDiffAmazon.toFixed(2)}</div>
             </div>
-            <div style="padding: 4px; background: var(--theme-background-alt); border-radius: 4px;">
-              <div style="font-size: 8px; color: var(--theme-foreground-muted); margin-bottom: 2px;">Others</div>
-              <div style="font-size: 14px; font-weight: 700; color: #0275D8;">${stats.meanDiffOther.toFixed(2)}</div>
+            <div style="padding: 3px; background: var(--theme-background-alt); border-radius: 3px;">
+              <div style="font-size: 7px; color: var(--theme-foreground-muted); margin-bottom: 1px;">Others</div>
+              <div style="font-size: 12px; font-weight: 700; color: #0275D8;">${stats.meanDiffOther.toFixed(2)}</div>
             </div>
           </div>
         </div>
@@ -568,7 +1080,7 @@ function createTemporalCard() {
 
 const colorOther = "#1f77b4";
 
-function createChart(width, forceMode = null) {
+function createChart(width, forceMode = null, heightOverride = null) {
   const currentMode = forceMode || vizType;
   
   if (!filteredMovies.length) {
@@ -580,8 +1092,10 @@ function createChart(width, forceMode = null) {
     return div;
   }
 
-  const height = 450;
-  const margin = {top: 70, right: 40, bottom: 50, left: 60};
+  const height = heightOverride || 450;
+  const margin = currentMode === "Temporal Gap (Lines)" 
+    ? {top: 40, right: 30, bottom: 35, left: 50}
+    : {top: 50, right: 30, bottom: 40, left: 50};
 
   const svg = d3.create("svg")
     .attr("viewBox", [0, 0, width, height])
@@ -624,9 +1138,10 @@ function createChart(width, forceMode = null) {
       .call(d3.axisBottom(x))
       .call(g => g.append("text")
         .attr("x", (width - margin.left - margin.right) / 2 + margin.left)
-        .attr("y", 35)
+        .attr("y", 30)
         .attr("fill", "currentColor")
         .attr("text-anchor", "middle")
+        .attr("font-size", 11)
         .text("TMDb score"));
 
     svg.append("g")
@@ -634,9 +1149,10 @@ function createChart(width, forceMode = null) {
       .call(d3.axisLeft(y))
       .call(g => g.append("text")
         .attr("x", 0)
-        .attr("y", margin.top - 35)
+        .attr("y", margin.top - 25)
         .attr("fill", "currentColor")
         .attr("text-anchor", "start")
+        .attr("font-size", 11)
         .text("IMDb score"));
 
     svg.append("line")
@@ -752,27 +1268,27 @@ function createChart(width, forceMode = null) {
 
     // Legend
     const legendItems = allPlatforms;
-    const itemWidth = 110;
+    const itemWidth = 100;
     const legendWidth = legendItems.length * itemWidth;
 
     const legend = svg.append("g")
-      .attr("transform", `translate(${width / 2 - legendWidth / 2}, ${margin.top - 50})`);
+      .attr("transform", `translate(${width / 2 - legendWidth / 2}, ${margin.top - 35})`);
 
     legendItems.forEach((name, i) => {
       const item = legend.append("g")
         .attr("transform", `translate(${i * itemWidth}, 0)`);
 
       item.append("circle")
-        .attr("r", 6)
+        .attr("r", 5)
         .attr("cx", 0)
         .attr("cy", 0)
         .attr("fill", colorScale(name))
         .attr("opacity", 0.95);
 
       item.append("text")
-        .attr("x", 10)
-        .attr("y", 4)
-        .attr("font-size", 13)
+        .attr("x", 9)
+        .attr("y", 3)
+        .attr("font-size", 11)
         .attr("font-weight", 600)
         .attr("fill", "currentColor")
         .text(name);
@@ -839,7 +1355,7 @@ function createChart(width, forceMode = null) {
       .attr("transform", `translate(0,${height - margin.bottom})`)
       .call(d3.axisBottom(x0))
       .selectAll("text")
-      .attr("font-size", 11);
+      .attr("font-size", 10);
 
     svg.append("g")
       .attr("transform", `translate(${margin.left},0)`)
@@ -847,28 +1363,28 @@ function createChart(width, forceMode = null) {
 
     // Legend
     const legendItems = allPlatforms;
-    const itemWidth = 110;
+    const itemWidth = 100;
     const legendWidth = legendItems.length * itemWidth;
 
     const legend = svg.append("g")
-      .attr("transform", `translate(${width / 2 - legendWidth / 2}, ${margin.top - 50})`);
+      .attr("transform", `translate(${width / 2 - legendWidth / 2}, ${margin.top - 35})`);
 
     legendItems.forEach((name, i) => {
       const item = legend.append("g")
         .attr("transform", `translate(${i * itemWidth}, 0)`);
 
       item.append("rect")
-        .attr("x", -8)
-        .attr("y", -6)
-        .attr("width", 12)
-        .attr("height", 12)
+        .attr("x", -7)
+        .attr("y", -5)
+        .attr("width", 10)
+        .attr("height", 10)
         .attr("fill", colorScale(name))
         .attr("opacity", 0.85);
 
       item.append("text")
-        .attr("x", 10)
-        .attr("y", 4)
-        .attr("font-size", 13)
+        .attr("x", 8)
+        .attr("y", 3)
+        .attr("font-size", 11)
         .attr("font-weight", 600)
         .attr("fill", "currentColor")
         .text(name);
@@ -910,6 +1426,7 @@ function createChart(width, forceMode = null) {
     
     const temporalData = movies.filter(d => 
       d.imdb_votes >= minVotes &&
+      // DELETE: d.tmdb_votes >= minTmdbVotes &&
       (platforms.length === 0 || platforms.includes(d.platform))
     );
 
@@ -948,17 +1465,19 @@ function createChart(width, forceMode = null) {
 
     svg.append("g")
       .attr("transform", `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(x).tickFormat(d3.format("d")));
+      .call(d3.axisBottom(x).tickFormat(d3.format("d")).ticks(6))
+      .call(g => g.selectAll("text").attr("font-size", 9));
 
     svg.append("g")
       .attr("transform", `translate(${margin.left},0)`)
-      .call(d3.axisLeft(y))
+      .call(d3.axisLeft(y).ticks(5))
+      .call(g => g.selectAll("text").attr("font-size", 9))
       .call(g => g.append("text")
-        .attr("x", -40)
-        .attr("y", margin.top - 10)
+        .attr("x", -30)
+        .attr("y", margin.top - 8)
         .attr("fill", "currentColor")
         .attr("text-anchor", "start")
-        .attr("font-size", 12)
+        .attr("font-size", 10)
         .text("IMDb − TMDb gap"));
 
     svg.append("line")
@@ -971,28 +1490,28 @@ function createChart(width, forceMode = null) {
 
     // Legend
     const legendItems = activePlatforms;
-    const itemWidth = 110;
+    const itemWidth = 90;
     const legendWidth = legendItems.length * itemWidth;
 
     const legend = svg.append("g")
-      .attr("transform", `translate(${width / 2 - legendWidth / 2}, ${margin.top - 50})`);
+      .attr("transform", `translate(${width / 2 - legendWidth / 2}, ${margin.top - 30})`);
 
     legendItems.forEach((name, i) => {
       const item = legend.append("g")
         .attr("transform", `translate(${i * itemWidth}, 0)`);
 
       item.append("line")
-        .attr("x1", -12)
+        .attr("x1", -10)
         .attr("x2", 0)
         .attr("y1", 0)
         .attr("y2", 0)
         .attr("stroke", colorScale(name))
-        .attr("stroke-width", 2.5);
+        .attr("stroke-width", 2);
 
       item.append("text")
-        .attr("x", 6)
-        .attr("y", 4)
-        .attr("font-size", 13)
+        .attr("x", 5)
+        .attr("y", 3)
+        .attr("font-size", 10)
         .attr("font-weight", 600)
         .attr("fill", "currentColor")
         .text(name);
@@ -1011,13 +1530,13 @@ function createChart(width, forceMode = null) {
         .attr("d", lineGen(platform))
         .attr("fill", "none")
         .attr("stroke", colorScale(platform))
-        .attr("stroke-width", 2.5);
+        .attr("stroke-width", 2);
 
       svg.selectAll(`circle.${platform.replace('+', 'plus')}`).data(trends.filter(d => d[platform] !== null)).join("circle")
         .attr("class", platform.replace('+', 'plus'))
         .attr("cx", d => x(d.year))
         .attr("cy", d => y(d[platform]))
-        .attr("r", 3)
+        .attr("r", 2)
         .attr("fill", colorScale(platform));
     });
   }
@@ -1025,4 +1544,3 @@ function createChart(width, forceMode = null) {
   return svg.node();
 }
 ```
-
