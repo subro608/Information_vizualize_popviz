@@ -1609,8 +1609,8 @@ function createTemporalCard() {
 ``` -->
 ```js
 function createGenreAnalysis(width) {
-  const height = 450;
-  const margin = {top: 60, right: 140, bottom: 50, left: 120};
+  const height = 550;
+  const margin = {top: 60, right: 140, bottom: 100, left: 120};
   
   if (!filteredMovies.length) {
     const div = document.createElement("div");
@@ -1703,8 +1703,12 @@ function createGenreAnalysis(width) {
     .range([0, x.bandwidth()])
     .padding(0.05);
 
+  // Calculate actual data range instead of hardcoded [-1, 1]
+  const dataExtent = d3.extent(genreStats, d => d.avg_diff);
+  const maxAbs = Math.max(Math.abs(dataExtent[0]), Math.abs(dataExtent[1]));
+  
   const y = d3.scaleLinear()
-    .domain([-1, 1])
+    .domain([-maxAbs * 1.1, maxAbs * 1.1])
     .range([height - margin.bottom, margin.top])
     .nice();
 
