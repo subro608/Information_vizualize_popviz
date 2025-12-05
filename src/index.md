@@ -503,6 +503,11 @@ function clean(row, platform) {
     ? row.genres.replace(/[\[\]']/g, '').split(',').map(g => g.trim())
     : [];
 
+  // Parse production_countries from string format "['US', 'GB']" to array
+  const production_countries = row.production_countries 
+    ? row.production_countries.replace(/[\[\]']/g, '').split(',').map(c => c.trim())
+    : [];
+
   return {
     title: row.title,
     release_year,
@@ -511,13 +516,13 @@ function clean(row, platform) {
     imdb_votes,
     platform,
     genres: genres,
+    production_countries: production_countries,  // ADD THIS LINE
     primary_genre: genres[0] || 'Unknown',
     is_amazon: platform === "Amazon" && release_year >= 2013,
     score_diff: imdb_score - tmdb_score,
     log_votes: Math.log10((imdb_votes || 0) + 1)
   };
 }
-
 const movies_all = [
   ...amazon_raw.map(d => clean(d, "Amazon")),
   ...netflix_raw.map(d => clean(d, "Netflix")),
@@ -526,10 +531,16 @@ const movies_all = [
 ];
 
 const movies = movies_all.filter(d =>
-  d.release_year >= 2000 &&
+  d.release_year >= 1990 &&
   isFinite(d.imdb_score) && d.imdb_score > 0 &&
   isFinite(d.tmdb_score) && d.tmdb_score > 0
 );
+
+const allCountries = Array.from(
+  new Set(
+    movies.flatMap(d => d.production_countries || [])
+  )
+).filter(c => c && c.length > 0).sort();
 ```
 
 ```js
@@ -546,12 +557,13 @@ const platformInput = Inputs.checkbox(
 );
 
 const vizTypeInput = Inputs.radio(
-  ["Bias Detector (Scatter)", "Quality Control (Box Plot)", "Genre Analysis"],
+  ["Bias Detector (Scatter)", "Quality Control (Box Plot)", "Genre Analysis", "Country-Genre Bias Matrix"],
   {
     label: "Visualization",
     value: "Bias Detector (Scatter)"
   }
 );
+// Prepare country temporal data for Country-Genre Bias Matrix mode
 
 // Create custom grid layout for genres
 const genreFilterInput = (() => {
@@ -665,7 +677,8 @@ const selectedPlatforms = Generators.input(platformInput);
 const vizType = Generators.input(vizTypeInput);
 const selectedYear = Generators.input(yearDialInput);
 const minVotes = Generators.input(minVotesInput);
-const selectedGenres = Generators.input(genreFilterInput);  // NEW
+const selectedGenres = Generators.input(genreFilterInput);
+
 
 
 // Toggle input for temporal expansion
@@ -697,6 +710,386 @@ const filteredMovies = (() => {
 
   return current;
 })();
+// Prepare country temporal data for Country-Genre Bias Matrix mode
+const showCountryTemporal = vizType === "Country-Genre Bias Matrix";
+
+// Always compute country temporal data (not conditionally) to avoid reactivity issues
+const countryTemporalData = (() => {
+  if (!showCountryTemporal) return [];
+  
+  // Use ALL movies data, respecting only platform and minVotes filters
+  const platforms = Array.isArray(selectedPlatforms) ? selectedPlatforms : [];
+  const minVotesVal = typeof minVotes === "number" ? minVotes : 0;
+  
+  const dataToUse = movies.filter(d => 
+    d.imdb_votes >= minVotesVal &&
+    (platforms.length === 0 || platforms.includes(d.platform))
+  );
+  
+  const grouped = d3.group(dataToUse, d => {
+    // Get first country from production_countries array
+    return d.production_countries && d.production_countries.length > 0 
+      ? d.production_countries[0] 
+      : null;
+  }, d => d.release_year);
+  
+  return Array.from(grouped, ([country, yearGroups]) => {
+    if (!country) return [];
+    return Array.from(yearGroups, ([year, items]) => ({
+      country: country,
+      year: year,
+      imdb_avg: d3.mean(items, d => d.imdb_score),
+      tmdb_avg: d3.mean(items, d => d.tmdb_score),
+      count: items.length
+    }));
+  }).flat().filter(d => d.country && d.count >= 5); // At least 5 titles per country-year
+})();
+
+const countryTemporalLong = countryTemporalData.flatMap(d => [
+  {
+    country: d.country,
+    year: d.year,
+    score: d.imdb_avg,
+    source: "IMDb",
+    count: d.count
+  },
+  {
+    country: d.country,
+    year: d.year,
+    score: d.tmdb_avg,
+    source: "TMDb",
+    count: d.count
+  }
+]);
+
+// Debug log - you can remove this later
+console.log("vizType value:", vizType);
+console.log("vizType type:", typeof vizType);
+console.log("Exact comparison:", vizType === "Country-Genre Bias Matrix");
+console.log("showCountryTemporal:", showCountryTemporal);
+console.log("countryTemporalLong length:", countryTemporalLong.length);
+console.log("Sample data:", countryTemporalLong.slice(0, 5));
+
+function createCountryGenreBiasMatrix(width) {
+  const height = 600;
+  const margin = {top: 80, right: 120, bottom: 60, left: 100};
+  
+  if (!filteredMovies.length) {
+    const div = document.createElement("div");
+    div.style.padding = "24px";
+    div.style.textAlign = "center";
+    div.style.color = "var(--theme-foreground-muted)";
+    div.textContent = "No titles match the current filters.";
+    return div;
+  }
+
+  // Extract unique genres and countries
+  const genreSet = new Set();
+  const countryCounts = new Map();
+  
+  filteredMovies.forEach(d => {
+    if (d.genres && d.genres.length > 0) {
+      d.genres.forEach(g => genreSet.add(g));
+    }
+    // Parse production_countries
+    if (d.production_countries) {
+      let countries = d.production_countries;
+      if (typeof countries === 'string') {
+        countries = countries.replace(/[\[\]']/g, '').split(',').map(c => c.trim());
+      }
+      countries.forEach(c => {
+        if (c && c.length > 0) {
+          countryCounts.set(c, (countryCounts.get(c) || 0) + 1);
+        }
+      });
+    }
+  });
+
+  // Get top 8 countries by frequency
+  const countries = Array.from(countryCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([country]) => country);
+  
+  let genres;
+  if (selectedGenres && selectedGenres.length > 0) {
+    genres = selectedGenres.sort();
+  } else {
+    genres = Array.from(genreSet).sort();
+  }
+
+  if (genres.length === 0 || countries.length === 0) {
+    const div = document.createElement("div");
+    div.style.padding = "24px";
+    div.style.textAlign = "center";
+    div.style.color = "var(--theme-foreground-muted)";
+    div.textContent = "Not enough data for country-genre analysis.";
+    return div;
+  }
+
+  // Create a COMPLETE matrix with all possible genre-country combinations
+  const completeMatrix = [];
+  genres.forEach(genre => {
+    countries.forEach(country => {
+      const titles = filteredMovies.filter(d => {
+        const hasGenre = d.genres && d.genres.includes(genre);
+        let hasCountry = false;
+        if (d.production_countries) {
+          let countriesList = d.production_countries;
+          if (typeof countriesList === 'string') {
+            countriesList = countriesList.replace(/[\[\]']/g, '').split(',').map(c => c.trim());
+          }
+          hasCountry = countriesList.includes(country);
+        }
+        return hasGenre && hasCountry;
+      });
+
+      if (titles.length >= 1) {
+        const avgBias = d3.mean(titles, d => d.score_diff);
+        const avgImdb = d3.mean(titles, d => d.imdb_score);
+        const avgTmdb = d3.mean(titles, d => d.tmdb_score);
+        completeMatrix.push({
+          genre,
+          country,
+          bias: avgBias,
+          avg_imdb: avgImdb,
+          avg_tmdb: avgTmdb,
+          count: titles.length,
+          hasData: true
+        });
+      } else {
+        // Add empty cell placeholder
+        completeMatrix.push({
+          genre,
+          country,
+          bias: null,
+          avg_imdb: null,
+          avg_tmdb: null,
+          count: 0,
+          hasData: false
+        });
+      }
+    });
+  });
+
+  if (completeMatrix.filter(d => d.hasData).length === 0) {
+    const div = document.createElement("div");
+    div.style.padding = "24px";
+    div.style.textAlign = "center";
+    div.style.color = "var(--theme-foreground-muted)";
+    div.textContent = "Not enough data per country-genre combination.";
+    return div;
+  }
+
+  const svg = d3.create("svg")
+    .attr("viewBox", [0, 0, width, height])
+    .attr("width", width)
+    .attr("height", height)
+    .style("max-width", "100%")
+    .style("height", "auto");
+
+  // Scales
+  const xScale = d3.scaleBand()
+    .domain(countries)
+    .range([margin.left, width - margin.right])
+    .padding(0.05);
+
+  const yScale = d3.scaleBand()
+    .domain(genres)
+    .range([margin.top, height - margin.bottom])
+    .padding(0.05);
+
+  // Color scale: Red = IMDb higher, Blue = TMDb higher, White = consensus
+  const maxBias = d3.max(completeMatrix.filter(d => d.hasData), d => Math.abs(d.bias)) || 1;
+  const colorScale = d3.scaleLinear()
+    .domain([-maxBias, 0, maxBias])
+    .range(["#3b82f6", "#ffffff", "#ef4444"])
+    .clamp(true);
+
+  // X-axis (countries)
+  svg.append("g")
+    .attr("transform", `translate(0,${margin.top - 10})`)
+    .call(d3.axisTop(xScale))
+    .selectAll("text")
+    .attr("font-size", 11)
+    .attr("font-weight", 600);
+
+  // Y-axis (genres)
+  svg.append("g")
+    .attr("transform", `translate(${margin.left - 10},0)`)
+    .call(d3.axisLeft(yScale))
+    .selectAll("text")
+    .attr("font-size", 11)
+    .attr("font-weight", 600);
+
+  // Title
+  svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", margin.top - 50)
+    .attr("text-anchor", "middle")
+    .attr("font-size", 16)
+    .attr("font-weight", 700)
+    .attr("fill", "currentColor")
+    .text("The Bias Matrix: Genre vs. Geography");
+
+  // Subtitle
+  svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", margin.top - 30)
+    .attr("text-anchor", "middle")
+    .attr("font-size", 11)
+    .attr("fill", "var(--theme-foreground-muted)")
+    .text("Red = IMDb Higher | Blue = TMDb Higher | White = Consensus");
+
+  // Create tooltip
+  const tooltip = d3.select("body")
+    .selectAll(".country-genre-tooltip")
+    .data([null])
+    .join("div")
+    .attr("class", "country-genre-tooltip")
+    .style("position", "absolute")
+    .style("visibility", "hidden")
+    .style("background-color", "rgba(0, 0, 0, 0.9)")
+    .style("color", "white")
+    .style("padding", "12px 16px")
+    .style("border-radius", "8px")
+    .style("font-size", "13px")
+    .style("pointer-events", "none")
+    .style("z-index", "1000")
+    .style("box-shadow", "0 4px 12px rgba(0,0,0,0.4)")
+    .style("max-width", "280px")
+    .style("line-height", "1.5");
+
+  // Draw cells using COMPLETE matrix
+  svg.selectAll("rect.cell")
+    .data(completeMatrix)
+    .join("rect")
+    .attr("class", "cell")
+    .attr("x", d => xScale(d.country))
+    .attr("y", d => yScale(d.genre))
+    .attr("width", xScale.bandwidth())
+    .attr("height", yScale.bandwidth())
+    .attr("fill", d => d.hasData ? colorScale(d.bias) : "#f5f5f5")
+    .attr("stroke", "#333")
+    .attr("stroke-width", 1)
+    .style("cursor", d => d.hasData ? "pointer" : "default")
+    .on("mouseover", function(event, d) {
+      if (!d.hasData) return;
+      
+      d3.select(this)
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 3);
+
+      const sign = d.bias >= 0 ? "+" : "";
+      const preference = Math.abs(d.bias) < 0.1 ? "Consensus" : 
+                        d.bias > 0 ? "IMDb rates higher" : "TMDb rates higher";
+      
+      tooltip
+        .style("visibility", "visible")
+        .html(`
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">
+            ${d.country} • ${d.genre.charAt(0).toUpperCase() + d.genre.slice(1)}
+          </div>
+          <div style="margin-bottom: 6px;">
+            <strong>Titles analyzed:</strong> ${d.count}
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 4px;">
+            <div>
+              <div style="color: #aaa; font-size: 11px;">Avg IMDb</div>
+              <div style="font-weight: 600; font-size: 16px;">${d.avg_imdb.toFixed(2)}</div>
+            </div>
+            <div>
+              <div style="color: #aaa; font-size: 11px;">Avg TMDb</div>
+              <div style="font-weight: 600; font-size: 16px;">${d.avg_tmdb.toFixed(2)}</div>
+            </div>
+          </div>
+          <div style="margin-bottom: 6px;">
+            <strong>Bias (Δ):</strong> ${sign}${d.bias.toFixed(3)}
+          </div>
+          <div style="font-size: 11px; color: #999;">
+            ${preference}
+          </div>
+        `);
+    })
+    .on("mousemove", function(event) {
+      tooltip
+        .style("top", (event.pageY - 10) + "px")
+        .style("left", (event.pageX + 15) + "px");
+    })
+    .on("mouseout", function(event, d) {
+      if (!d.hasData) return;
+      
+      d3.select(this)
+        .attr("stroke", "#333")
+        .attr("stroke-width", 1);
+      
+      tooltip.style("visibility", "hidden");
+    });
+
+  // Add text labels for significant biases
+  svg.selectAll("text.cell-label")
+    .data(completeMatrix.filter(d => d.hasData && Math.abs(d.bias) > 0.0000000000000001))
+    .join("text")
+    .attr("class", "cell-label")
+    .attr("x", d => xScale(d.country) + xScale.bandwidth() / 2)
+    .attr("y", d => yScale(d.genre) + yScale.bandwidth() / 2)
+    .attr("text-anchor", "middle")
+    .attr("dominant-baseline", "middle")
+    .attr("font-size", 10)
+    .attr("font-weight", 700)
+    .attr("fill", d => Math.abs(d.bias) > 0.4 ? "#000" : "#333")
+    .attr("pointer-events", "none")
+    .text(d => d.bias.toFixed(2));
+
+  // Legend
+  const legendWidth = 200;
+  const legendHeight = 15;
+  const legendX = width - margin.right - legendWidth - 20;
+  const legendY = margin.top - 45;
+
+  const legendScale = d3.scaleLinear()
+    .domain([-maxBias, maxBias])
+    .range([0, legendWidth]);
+
+  const legendAxis = d3.axisBottom(legendScale)
+    .ticks(5)
+    .tickFormat(d => d > 0 ? `+${d.toFixed(1)}` : d.toFixed(1));
+
+  // Create gradient
+  const defs = svg.append("defs");
+  const gradient = defs.append("linearGradient")
+    .attr("id", "bias-gradient")
+    .attr("x1", "0%")
+    .attr("x2", "100%");
+
+  gradient.append("stop")
+    .attr("offset", "0%")
+    .attr("stop-color", "#3b82f6");
+  
+  gradient.append("stop")
+    .attr("offset", "50%")
+    .attr("stop-color", "#ffffff");
+  
+  gradient.append("stop")
+    .attr("offset", "100%")
+    .attr("stop-color", "#ef4444");
+
+  svg.append("rect")
+    .attr("x", legendX)
+    .attr("y", legendY)
+    .attr("width", legendWidth)
+    .attr("height", legendHeight)
+    .style("fill", "url(#bias-gradient)")
+    .attr("stroke", "#333");
+
+  svg.append("g")
+    .attr("transform", `translate(${legendX},${legendY + legendHeight})`)
+    .call(legendAxis)
+    .selectAll("text")
+    .attr("font-size", 9);
+
+  return svg.node();
+}
 ```
 
 ```js
@@ -1063,6 +1456,48 @@ function titlesPie(width = 260) {
   return svg.node();
 }
 ```
+<div class="card" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border: 1px solid #333; padding: 20px 48px; margin-bottom: 16px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 40px;">
+    <div style="flex: 1; max-width: 55%;">
+      <h1 style="color: #fff; margin: 0 0 12px 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">
+        Streaming Platform Score Bias Analysis
+      </h1>
+      <p style="color: rgba(255,255,255,0.8); font-size: 14px; line-height: 1.6; margin: 0;">
+        This dashboard explores rating differences between <strong style="color: #F39C12;">IMDb</strong> and <strong style="color: #2ECC71;">TMDb</strong> across four major streaming platforms: <strong style="color: #0275D8;">Amazon Prime Video</strong>, <strong style="color: #E60026;">Netflix</strong>, <strong style="color: #2ECC71;">Hulu</strong>, and <strong style="color: #F39C12;">Disney+</strong>. 
+        IMDb tends to reflect dedicated film enthusiasts, while TMDb captures a broader audience perspective. 
+        Understanding these biases reveals how different communities perceive the same content across these competing services.
+      </p>
+    </div>
+    <div style="display: flex; gap: 16px; align-items: center; justify-content: center;">
+      <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; min-width: 100px; height: 70px;">
+        <img src="amazon.png" alt="Prime Video" style="max-height: 55px; max-width: 90px; width: auto; height: auto; display: block;">
+      </div>
+      <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; min-width: 100px; height: 70px;">
+        <img src="netflix.png" alt="Netflix" style="max-height: 55px; max-width: 90px; width: auto; height: auto; display: block;">
+      </div>
+      <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; min-width: 100px; height: 70px;">
+        <img src="hulu.jpg" alt="Hulu" style="max-height: 55px; max-width: 90px; width: auto; height: auto; display: block;">
+      </div>
+      <div style="background: rgba(255,255,255,0.05); padding: 16px 20px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; min-width: 100px; height: 70px;">
+        <img src="disney.jpg" alt="Disney+" style="max-height: 55px; max-width: 90px; width: auto; height: auto; display: block;">
+      </div>
+    </div>
+  </div>
+  <div style="display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 200px; background: rgba(2, 117, 216, 0.1); border-left: 3px solid #0275D8; padding: 10px 12px; border-radius: 4px;">
+      <div style="color: #0275D8; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Dataset</div>
+      <div style="color: #fff; font-size: 13px; line-height: 1.4;">Analyze rating biases across streaming services with interactive visualizations</div>
+    </div>
+    <div style="flex: 1; min-width: 200px; background: rgba(46, 204, 113, 0.1); border-left: 3px solid #2ECC71; padding: 10px 12px; border-radius: 4px;">
+      <div style="color: #2ECC71; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Key Insight</div>
+      <div style="color: #fff; font-size: 13px; line-height: 1.4;">Drill down by year, genre, vote count, and platform to discover patterns</div>
+    </div>
+    <div style="flex: 1; min-width: 200px; background: rgba(243, 156, 18, 0.1); border-left: 3px solid #F39C12; padding: 10px 12px; border-radius: 4px;">
+      <div style="color: #F39C12; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Explore</div>
+      <div style="color: #fff; font-size: 13px; line-height: 1.4;">Visualize how rating differences evolve over time and across genres</div>
+    </div>
+  </div>
+</div>
 <div class="grid grid-cols-1">
 
   <div class="grid gap-2" style="grid-template-columns: 260px 1fr;">
@@ -1112,9 +1547,14 @@ function titlesPie(width = 260) {
         <div>${resize(width => createChart(width, null, 320))}</div>
       </div>
       <div class="card" style="padding: 10px 12px 12px 12px;">
-        <h2 style="margin-top: 0; margin-bottom: 6px; font-size: 14px;">Temporal Gap (Lines)</h2>
-        <div>${resize(width => createChart(width, "Temporal Gap (Lines)", 280))}</div>
-        <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--theme-foreground-faintest);">
+        <h2 style="margin-top: 0; margin-bottom: 6px; font-size: 14px;">
+          ${showCountryTemporal ? "Country Temporal Analysis (IMDb vs TMDb)" : "Temporal Gap (Lines)"}
+        </h2>
+        <div>${resize(width => showCountryTemporal 
+          ? createChart(width, "Country Temporal Analysis", 280)
+          : createChart(width, "Temporal Gap (Lines)", 280)
+        )}</div>
+        ${!showCountryTemporal ? html`<div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--theme-foreground-faintest);">
           <h3 style="margin-top: 0; margin-bottom: 3px; font-size: 9px; font-weight: 600; color: var(--theme-foreground-muted);">Δ(IMDb − TMDb)</h3>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
             <div style="padding: 3px; background: var(--theme-background-alt); border-radius: 3px;">
@@ -1126,7 +1566,7 @@ function titlesPie(width = 260) {
               <div style="font-size: 12px; font-weight: 700; color: #0275D8;">${stats.meanDiffOther.toFixed(2)}</div>
             </div>
           </div>
-        </div>
+        </div>` : ''}
       </div>
     </div>
   </div>
@@ -1450,11 +1890,255 @@ function createChart(width, forceMode = null, heightOverride = null) {
     return div;
   }
 
-  // ========= NEW MODE: GENRE ANALYSIS =========
+  // ========= NEW MODE: COUNTRY-GENRE BIAS MATRIX =========
+  if (currentMode === "Country-Genre Bias Matrix") {
+    return createCountryGenreBiasMatrix(width);
+  }
+
+  // ========= GENRE ANALYSIS MODE =========
   if (currentMode === "Genre Analysis") {
     return createGenreAnalysis(width);
   }
+  // ========= COUNTRY TEMPORAL ANALYSIS MODE =========
+  if (currentMode === "Country Temporal Analysis") {
+    const countriesPerRow = 3;
+    const chartWidth = (width - 40) / countriesPerRow;
+    const chartHeight = 180;
+    const margin = {top: 25, right: 15, bottom: 25, left: 40};
+    
+    if (!countryTemporalLong.length) {
+      const div = document.createElement("div");
+      div.style.padding = "24px";
+      div.style.textAlign = "center";
+      div.style.color = "var(--theme-foreground-muted)";
+      div.textContent = "No country data available.";
+      return div;
+    }
 
+    // Get top 6 countries by number of titles
+    const countryTitleCounts = d3.rollup(
+      countryTemporalLong,
+      v => d3.sum(v, d => d.count),
+      d => d.country
+    );
+    
+    const topCountries = Array.from(countryTitleCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([country]) => country);
+
+    const numRows = Math.ceil(topCountries.length / countriesPerRow);
+    const totalHeight = numRows * (chartHeight + 20) + 60;
+
+    const svg = d3.create("svg")
+      .attr("viewBox", [0, 0, width, totalHeight])
+      .attr("width", width)
+      .attr("height", totalHeight)
+      .style("max-width", "100%")
+      .style("height", "auto");
+
+    // Overall title
+    svg.append("text")
+      .attr("x", width / 2)
+      .attr("y", 20)
+      .attr("text-anchor", "middle")
+      .attr("font-size", 16)
+      .attr("font-weight", 700)
+      .attr("fill", "currentColor")
+      .text("IMDb vs TMDb Ratings Over Time by Country");
+
+    // Add legend (top right)
+    const legendX = width - 150;
+    const legendY = 35;
+    
+    const legend = svg.append("g")
+      .attr("transform", `translate(${legendX}, ${legendY})`);
+    
+    legend.append("line")
+      .attr("x1", 0).attr("x2", 20)
+      .attr("y1", 0).attr("y2", 0)
+      .attr("stroke", "#F39C12")
+      .attr("stroke-width", 2);
+    
+    legend.append("text")
+      .attr("x", 25).attr("y", 4)
+      .attr("font-size", 11)
+      .attr("fill", "currentColor")
+      .text("IMDb");
+    
+    legend.append("line")
+      .attr("x1", 70).attr("x2", 90)
+      .attr("y1", 0).attr("y2", 0)
+      .attr("stroke", "#2ECC71")
+      .attr("stroke-width", 2);
+    
+    legend.append("text")
+      .attr("x", 95).attr("y", 4)
+      .attr("font-size", 11)
+      .attr("fill", "currentColor")
+      .text("TMDb");
+
+    // Color scheme for IMDb vs TMDb
+    const sourceColors = {
+      "IMDb": "#F39C12",
+      "TMDb": "#2ECC71"
+    };
+
+    // Create tooltip
+    const tooltip = d3.select("body")
+      .selectAll(".country-temporal-tooltip")
+      .data([null])
+      .join("div")
+      .attr("class", "country-temporal-tooltip")
+      .style("position", "absolute")
+      .style("visibility", "hidden")
+      .style("background-color", "rgba(0, 0, 0, 0.9)")
+      .style("color", "white")
+      .style("padding", "10px 14px")
+      .style("border-radius", "6px")
+      .style("font-size", "12px")
+      .style("pointer-events", "none")
+      .style("z-index", "1000")
+      .style("box-shadow", "0 4px 12px rgba(0,0,0,0.4)")
+      .style("line-height", "1.4");
+
+    // Create small multiple for each country
+    topCountries.forEach((country, i) => {
+      const row = Math.floor(i / countriesPerRow);
+      const col = i % countriesPerRow;
+      const xOffset = col * chartWidth + 20;
+      const yOffset = row * (chartHeight + 20) + 60;
+
+      const chartGroup = svg.append("g")
+        .attr("transform", `translate(${xOffset}, ${yOffset})`);
+
+      // Filter data for this country
+      const countryData = countryTemporalLong.filter(d => d.country === country);
+      
+      if (countryData.length === 0) return;
+
+      // Get year extent for this country
+      const yearExtent = d3.extent(countryData, d => d.year);
+      
+      // Scales
+      const x = d3.scaleLinear()
+        .domain(yearExtent)
+        .range([margin.left, chartWidth - margin.right]);
+
+      const y = d3.scaleLinear()
+        .domain([5.5, 8.5])
+        .range([chartHeight - margin.bottom, margin.top]);
+
+      // Add light background
+      chartGroup.append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", chartWidth)
+        .attr("height", chartHeight)
+        .attr("fill", "rgba(255,255,255,0.02)")
+        .attr("stroke", "rgba(255,255,255,0.1)")
+        .attr("stroke-width", 1)
+        .attr("rx", 4);
+
+      // X-axis
+      chartGroup.append("g")
+        .attr("transform", `translate(0,${chartHeight - margin.bottom})`)
+        .call(d3.axisBottom(x)
+          .ticks(4)
+          .tickFormat(d3.format("d")))
+        .call(g => g.selectAll("text")
+          .attr("font-size", 8))
+        .call(g => g.selectAll("line")
+          .attr("stroke", "rgba(255,255,255,0.2)"))
+        .call(g => g.select(".domain")
+          .attr("stroke", "rgba(255,255,255,0.2)"));
+
+      // Y-axis
+      chartGroup.append("g")
+        .attr("transform", `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y).ticks(4))
+        .call(g => g.selectAll("text")
+          .attr("font-size", 8))
+        .call(g => g.selectAll("line")
+          .attr("stroke", "rgba(255,255,255,0.2)"))
+        .call(g => g.select(".domain")
+          .attr("stroke", "rgba(255,255,255,0.2)"));
+
+      // Country title
+      chartGroup.append("text")
+        .attr("x", chartWidth / 2)
+        .attr("y", 12)
+        .attr("text-anchor", "middle")
+        .attr("font-size", 12)
+        .attr("font-weight", 700)
+        .attr("fill", "currentColor")
+        .text(country);
+
+      // Draw lines for each source
+      ["IMDb", "TMDb"].forEach(source => {
+        const data = countryData
+          .filter(d => d.source === source)
+          .sort((a, b) => a.year - b.year);
+        
+        if (data.length > 0) {
+          chartGroup.append("path")
+            .datum(data)
+            .attr("fill", "none")
+            .attr("stroke", sourceColors[source])
+            .attr("stroke-width", 2)
+            .attr("d", d3.line()
+              .x(d => x(d.year))
+              .y(d => y(d.score))
+            );
+
+          // Add points
+          chartGroup.selectAll(`circle.${source}`)
+            .data(data)
+            .join("circle")
+            .attr("class", source)
+            .attr("cx", d => x(d.year))
+            .attr("cy", d => y(d.score))
+            .attr("r", 2.5)
+            .attr("fill", sourceColors[source])
+            .style("cursor", "pointer")
+            .on("mouseover", function(event, d) {
+              d3.select(this)
+                .attr("r", 4)
+                .attr("stroke", "white")
+                .attr("stroke-width", 2);
+              
+              tooltip
+                .style("visibility", "visible")
+                .html(`
+                  <div style="font-weight: 700; margin-bottom: 4px;">
+                    ${country} - ${source}
+                  </div>
+                  <div style="font-size: 11px; color: #ccc;">Year: ${d.year}</div>
+                  <div style="font-size: 13px; font-weight: 600; margin: 4px 0;">
+                    Rating: ${d.score.toFixed(2)}
+                  </div>
+                  <div style="font-size: 10px; color: #999;">
+                    ${d.count} titles
+                  </div>
+                `);
+            })
+            .on("mousemove", function(event) {
+              tooltip
+                .style("top", (event.pageY - 10) + "px")
+                .style("left", (event.pageX + 15) + "px");
+            })
+            .on("mouseout", function() {
+              d3.select(this)
+                .attr("r", 2.5)
+                .attr("stroke", "none");
+              tooltip.style("visibility", "hidden");
+            });
+        }
+      });
+    });
+
+    return svg.node();
+  }
   const height = heightOverride || 450;
   const margin = currentMode === "Temporal Gap (Lines)" 
     ? {top: 40, right: 30, bottom: 35, left: 50}
